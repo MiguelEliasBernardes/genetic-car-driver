@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motorista Autônomo - Algoritmo Genético & Rede Neural</title>
+    <!-- Google Fonts: Outfit e Inter para visual premium -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon"></div>
+                <div>
+                    <h1>Antigravity Drive</h1>
+                    <p>Simulador de Carros Autônomos com Inteligência Evolutiva</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot active" id="mode-status-dot"></span>
+                <span id="mode-status-text">Modo de Treinamento Ativo</span>
+            </div>
+        </header>
+
+        <!-- DASHBOARD GRID -->
+        <div class="dashboard-grid">
+            
+            <!-- LEFT PANEL: CONTROLS & HYPERPARAMETERS -->
+            <aside class="panel left-panel">
+                <div class="panel-header">
+                    <h2>Configurações</h2>
+                    <span class="icon">⚙️</span>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- CONTROLES PRINCIPAIS -->
+                    <div class="control-group">
+                        <h3>Simulação</h3>
+                        <div class="button-grid">
+                            <button id="btn-pause" class="btn btn-secondary">Pausar</button>
+                            <button id="btn-restart" class="btn btn-danger">Reiniciar Geração</button>
+                        </div>
+                        <div class="slider-wrapper">
+                            <div class="slider-header">
+                                <label for="speed-slider">Velocidade da Simulação:</label>
+                                <span id="speed-val">1x</span>
+                            </div>
+                            <input type="range" id="speed-slider" min="1" max="10" value="1" step="1">
+                        </div>
+                    </div>
+
+                    <!-- HIPERPARÂMETROS DO GA -->
+                    <div class="control-group">
+                        <h3>Algoritmo Genético</h3>
+                        
+                        <div class="slider-wrapper">
+                            <div class="slider-header">
+                                <label for="pop-slider">Tamanho da População:</label>
+                                <span id="pop-val">100</span>
+                            </div>
+                            <input type="range" id="pop-slider" min="10" max="250" value="100" step="10">
+                        </div>
+
+                        <div class="slider-wrapper">
+                            <div class="slider-header">
+                                <label for="mutation-slider">Taxa de Mutação:</label>
+                                <span id="mutation-val">5%</span>
+                            </div>
+                            <input type="range" id="mutation-slider" min="1" max="50" value="5" step="1">
+                        </div>
+
+                        <div class="select-wrapper">
+                            <label for="crossover-select">Método de Cruzamento:</label>
+                            <select id="crossover-select">
+                                <option value="uniform" selected>Uniforme (Recomendado)</option>
+                                <option value="single">Ponto Único</option>
+                                <option value="average">Média Aritmética</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- SELEÇÃO DE PISTAS -->
+                    <div class="control-group">
+                        <h3>Pistas</h3>
+                        <div class="track-buttons">
+                            <button class="track-btn active" data-track="0">
+                                <span class="track-number">Pista 1</span>
+                                <span class="track-difficulty easy">Fácil (Oval)</span>
+                            </button>
+                            <button class="track-btn" data-track="1">
+                                <span class="track-number">Pista 2</span>
+                                <span class="track-difficulty medium">Média (S-Curvas)</span>
+                            </button>
+                            <button class="track-btn" data-track="2">
+                                <span class="track-number">Pista 3</span>
+                                <span class="track-difficulty hard">Difícil (Grampos)</span>
+                            </button>
+                        </div>
+                        
+                        <div class="custom-track-actions">
+                            <button id="btn-draw-track" class="btn btn-outline">✏️ Desenhar Parede</button>
+                            <button id="btn-clear-custom" class="btn btn-outline btn-danger-text hidden">Limpar Paredes</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER PANEL: SIMULATION CANVAS -->
+            <main class="simulation-area">
+                <!-- STATS BAR -->
+                <div class="stats-bar">
+                    <div class="stat-card">
+                        <span class="stat-label">Geração</span>
+                        <span class="stat-value" id="stat-generation">1</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Vivos</span>
+                        <span class="stat-value" id="stat-alive">100 / 100</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Melhor Fitness</span>
+                        <span class="stat-value text-glow-green" id="stat-best-fitness">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Histórico Máximo</span>
+                        <span class="stat-value text-glow-blue" id="stat-all-time-fitness">0</span>
+                    </div>
+                </div>
+
+                <!-- CANVAS HOLDER -->
+                <div class="canvas-container">
+                    <canvas id="simulationCanvas"></canvas>
+                    
+                    <!-- HUD overlay for user interactions -->
+                    <div class="canvas-overlay" id="canvas-overlay-msg">
+                        <div class="overlay-text">Pressione R para reiniciar a geração</div>
+                    </div>
+                </div>
+                
+                <!-- SIMULATOR CONTROL TIPS -->
+                <div class="simulation-footer">
+                    <p>💡 <strong>Dica:</strong> Em <strong>Modo de Teste</strong>, o melhor carro salvo dirige de forma autônoma sem evolução, servindo para validar se o cérebro aprendeu a pista do início ao fim!</p>
+                </div>
+            </main>
+
+            <!-- RIGHT PANEL: NEURAL NETWORK & SAVE/LOAD -->
+            <aside class="panel right-panel">
+                <div class="panel-header">
+                    <h2>Rede Neural (Cérebro)</h2>
+                    <span class="icon">🧠</span>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- BRAIN VISUALIZATION -->
+                    <div class="brain-vis-container">
+                        <canvas id="networkCanvas"></canvas>
+                    </div>
+
+                    <!-- SALVAR & CARREGAR MODELOS -->
+                    <div class="control-group">
+                        <h3>Persistência de Modelos</h3>
+                        <p class="section-desc">Salve os pesos sinápticos do melhor carro da geração atual para testá-lo ou transferi-lo para outras pistas.</p>
+                        
+                        <div class="model-actions">
+                            <button id="btn-save-local" class="btn btn-primary w-full">💾 Salvar no Navegador</button>
+                            <div class="button-grid mt-2">
+                                <button id="btn-download-file" class="btn btn-secondary">⬇️ Baixar JSON</button>
+                                <button id="btn-upload-file" class="btn btn-secondary" onclick="document.getElementById('file-input').click()">⬆️ Carregar JSON</button>
+                                <input type="file" id="file-input" class="hidden" accept=".json">
+                            </div>
+                        </div>
+
+                        <!-- CÉREBROS DISPONÍVEIS -->
+                        <div class="saved-brains-list mt-3">
+                            <h4>Cérebros Disponíveis:</h4>
+                            <div class="brain-items" id="brain-items-list">
+                                <!-- Dinamicamente populado -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MODO DE TESTE AUTÔNOMO -->
+                    <div class="control-group active-brain-box">
+                        <h3>Testar Motorista Treinado</h3>
+                        <p class="section-desc">Coloque o melhor cérebro salvo na pista para verificar se ele de fato aprendeu a dirigir sem colidir.</p>
+                        
+                        <div class="toggle-mode-wrapper">
+                            <label class="switch">
+                                <input type="checkbox" id="test-mode-toggle">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="toggle-label" id="toggle-label-text">Ativar Modo de Teste</span>
+                        </div>
+                        
+                        <div class="test-controls hidden" id="test-controls-area">
+                            <button id="btn-run-test" class="btn btn-accent w-full">🚀 Iniciar Corrida de Validação</button>
+                            <p class="test-status-msg" id="test-status-msg">Selecione uma pista acima e clique em iniciar.</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+        </div>
+        
+        <!-- FITNESS CHART MODAL OR PANEL -->
+        <footer class="app-footer">
+            <div class="progress-section">
+                <h3>Progresso Evolutivo (Fitness ao Longo das Gerações)</h3>
+                <div class="chart-container">
+                    <canvas id="fitnessChartCanvas"></canvas>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts do Simulador -->
+    <script src="network.js"></script>
+    <script src="track.js"></script>
+    <script src="car.js"></script>
+    <script src="genetic.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
